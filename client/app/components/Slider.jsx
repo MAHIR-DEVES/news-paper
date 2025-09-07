@@ -1,61 +1,56 @@
-"use client";
-import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+'use client';
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 
 const Slider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const sliderRef = useRef(null);
+  const [news, setNews] = useState([]);
 
-  const slides = [
-    {
-      id: 1,
-      image: "/img/slider (1).jpg",
-      alt: "Copa America",
-      title: "Teams qualified for 2024 Copa America Cup",
-      description:
-        "Lorem ipsum was conceived as filler text, formatted in a certain way to enable the presentation...",
-      date: "May 18, 2022",
-    },
-    {
-      id: 2,
-      image: "/img/slider (1).webp",
-      alt: "Sample Image 2",
-      title: "Another Sports Event",
-      description: "Sample description for the second slide...",
-      date: "June 10, 2022",
-    },
-    {
-      id: 3,
-      image: "/img/slider (2).jpg",
-      alt: "Sample Image 3",
-      title: "Upcoming Tournament",
-      description: "Sample description for the third slide...",
-      date: "July 5, 2022",
-    },
-  ];
-
+  // Fetch news
   useEffect(() => {
-    if (isPaused) return;
+    const fetchNews = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:5000/news?category=${'সর্বশেষ'}`,
+          {
+            cache: 'no-store',
+          }
+        );
+        if (!res.ok) throw new Error('Failed to fetch news');
+        const data = await res.json();
+        setNews(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  // Auto slide
+  useEffect(() => {
+    if (isPaused || news.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
+      setCurrentSlide(prev => (prev + 1) % news.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isPaused, slides.length]);
+  }, [isPaused, news.length]);
 
-  const goToSlide = (index) => {
+  const goToSlide = index => {
     setCurrentSlide(index);
   };
 
   const goToPrev = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    setCurrentSlide(prev => (prev - 1 + news.length) % news.length);
   };
 
   const goToNext = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    setCurrentSlide(prev => (prev + 1) % news.length);
   };
 
   return (
@@ -76,22 +71,26 @@ const Slider = () => {
           className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
-          {slides.map((slide, index) => (
-            <div key={slide.id} className="w-full flex-shrink-0 ">
+          {news.map((slide, index) => (
+            <div key={slide._id || index} className="w-full flex-shrink-0 ">
               <div className="relative h-64 md:h-80 lg:h-96 w-full">
                 <Image
-                  src={slide.image}
-                  alt={slide.alt}
-                  layout="fill"
-                  objectFit="cover"
-                  className=" transition-opacity duration-300 hover:opacity-90"
-                  placeholder="blur"
-                  blurDataURL="/placeholder.jpg"
+                  src={
+                    slide?.image?.startsWith('http')
+                      ? slide.image
+                      : slide?.image
+                      ? `${process.env.NEXT_PUBLIC_ROOT_URL}${slide.image}`
+                      : '/fallback.jpg'
+                  }
+                  alt={slide.title}
+                  fill
+                  className="object-cover"
+                  priority
                 />
 
                 <div
                   className={`absolute inset-0 bg-black/10 transition-opacity duration-300 ${
-                    showControls ? "opacity-100" : "opacity-0"
+                    showControls ? 'opacity-100' : 'opacity-0'
                   }`}
                 ></div>
               </div>
@@ -99,21 +98,16 @@ const Slider = () => {
                 <h3 className=" text-xl md:text-2xl font-bold mt-3">
                   {slide.title}
                 </h3>
-                <p className="text-gray-600 text-sm mt-2">
-                  {slide.description}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  codemin · {slide.date}
-                </p>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Prev Button */}
         <button
           onClick={goToPrev}
           className={`absolute left-4 cursor-pointer top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full shadow-md z-10 transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0"
+            showControls ? 'opacity-100' : 'opacity-0'
           }`}
           aria-label="Previous slide"
         >
@@ -133,10 +127,11 @@ const Slider = () => {
           </svg>
         </button>
 
+        {/* Next Button */}
         <button
           onClick={goToNext}
           className={`absolute right-4 cursor-pointer top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full shadow-md z-10 transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0"
+            showControls ? 'opacity-100' : 'opacity-0'
           }`}
           aria-label="Next slide"
         >
